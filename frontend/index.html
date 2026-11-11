@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FridgeMate - 냉장고 AI 요리 코치</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:640px;margin:0 auto;padding:16px;background:#f7f8fa}
+  .banner{background:#fff3cd;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:12px}
+  .card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px #0001}
+  #chat{height:340px;overflow-y:auto}
+  .msg{margin:8px 0;padding:8px 12px;border-radius:10px;white-space:pre-wrap}
+  .user{background:#dbeafe;margin-left:40px}.ai{background:#eef2f7;margin-right:40px}
+  .tag{font-size:11px;color:#888}
+  input,button{padding:8px;font-size:15px} input[type=text]{width:70%}
+  .chip{display:inline-block;background:#e0f2e9;padding:2px 8px;border-radius:12px;margin:2px;cursor:pointer}
+</style>
+</head>
+<body>
+<h2>🧊 FridgeMate</h2>
+<div class="banner">⚠️ 이 서비스의 모든 답변은 <b>AI가 생성한 콘텐츠</b>입니다. 알레르기 등 안전 정보는 직접 한 번 더 확인해 주세요.</div>
+
+<div id="signup" class="card">
+  <h3>시작하기</h3>
+  <input id="nick" type="text" placeholder="닉네임" /><br><br>
+  <input id="email" type="text" placeholder="(선택) 주간 알림 받을 이메일" /><br><br>
+  <label><input id="consent" type="checkbox" />
+    [필수] 닉네임, (선택)이메일, 대화 내용을 서비스 제공 및 개선 목적으로 수집하는 데 동의합니다.
+    보관 기간은 테스트 종료 후 [N]일이며, 언제든 아래 '내 데이터 삭제'로 삭제할 수 있습니다.</label><br><br>
+  <button onclick="signup()">시작</button>
+</div>
+
+<div id="app" style="display:none">
+  <div class="card">
+    <b>1. 냉장고 사진 올리기</b><br><br>
+    <input id="file" type="file" accept="image/*" capture="environment" />
+    <button onclick="analyze()">재료 인식</button>
+    <p id="ing-status" class="tag"></p>
+    <div id="chips"></div>
+    <input id="add" type="text" placeholder="재료 직접 추가 후 Enter" onkeydown="if(event.key==='Enter')addIng()" />
+    <p class="tag">인식 결과가 틀리면 칩을 눌러 삭제하고 직접 추가하세요.</p>
+  </div>
+  <div class="card">
+    <b>2. 요리 코치와 대화</b>
+    <div id="chat"></div>
+    <input id="q" type="text" placeholder="예: 20분 안에 만들 수 있는 거 추천해줘"
+           onkeydown="if(event.key==='Enter')send()" />
+    <button onclick="send()">전송</button>
+  </div>
+  <div class="card">
+    <button onclick="showMemory()">내 기억 보기</button>
+    <button onclick="showShopping()">장보기 목록</button>
+    <button onclick="del()" style="color:#c00">내 데이터 삭제</button>
+    <pre id="info"></pre>
+  </div>
+</div>
+
+<script>
+let uid = localStorage.getItem('uid'); let ings = [];
+if (uid) show();
+function show(){document.getElementById('signup').style.display='none';document.getElementById('app').style.display='block'}
+async function j(url,opt){const r=await fetch(url,opt);if(!r.ok){alert((await r.json()).detail||'오류');throw 0}return r.json()}
+async function signup(){
+  const d=await j('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({nickname:nick.value,consent:consent.checked,notify_email:email.value||null})});
+  uid=d.user_id;localStorage.setItem('uid',uid);show();
+}
+function render(){chips.innerHTML=ings.map((x,i)=>`<span class="chip" onclick="ings.splice(${i},1);render()">${x} ✕</span>`).join('')}
+function addIng(){if(add.value.trim()){ings.push(add.value.trim());add.value='';render()}}
+async function analyze(){
+  if(!file.files[0])return alert('사진을 선택하세요');
+  ing-status.textContent='AI가 분석 중...';
+  const fd=new FormData();fd.append('file',file.files[0]);
+  const d=await j('/api/fridge',{method:'POST',body:fd});
+  ings=d.ingredients.map(x=>x.name);render();
+  document.getElementById('ing-status').textContent=`AI가 ${ings.length}개 재료를 인식했어요. 확인 후 수정해 주세요.`;
+}
+function bubble(cls,text,withFb){
+  const div=document.createElement('div');div.className='msg '+cls;
+  div.innerHTML=text.replace(/</g,'&lt;')+(withFb?`<div class="tag">🤖 AI 생성 콘텐츠 &nbsp;<a href="#" onclick="fb(1);return false">👍</a> <a href="#" onclick="fb(-1);return false">👎</a></div>`:'');
+  chat.appendChild(div);chat.scrollTop=chat.scrollHeight;
+}
+async function send(){
+  const m=q.value.trim();if(!m)return;q.value='';bubble('user',m);
+  const d=await j('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({user_id:uid,message:m,ingredients:ings})});
+  bubble('ai',d.answer,true);
+}
+async function fb(r){const c=r<0?prompt('어떤 점이 아쉬웠나요? (선택)'):null;
+  await j('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:uid,rating:r,comment:c})});alert('감사합니다!')}
+async function showMemory(){const d=await j('/api/memory/'+uid);info.textContent=d.memories.map(m=>`[${m.kind}] ${m.content}`).join('\n')||'저장된 정보가 없어요'}
+async function showShopping(){const d=await j('/api/shopping/'+uid);info.textContent=d.items.map(i=>'- '+i.item).join('\n')||'비어 있어요'}
+async function del(){if(!confirm('모든 데이터가 삭제됩니다.'))return;await j('/api/users/'+uid,{method:'DELETE'});localStorage.removeItem('uid');location.reload()}
+</script>
+</body>
+</html>
