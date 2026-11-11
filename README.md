@@ -14,11 +14,11 @@
 ## 👥 팀원 및 역할
 | 이름 | 역할 | 담당 업무 |
 |------|------|-----------|
-| [이름] | PM / 기획 | 문제 정의, 기획서·명세서, 일정 관리, 사용자 테스트 총괄 |
-| [이름] | Backend / Agent | FastAPI, Agent 오케스트레이션, 도구 설계 |
-| [이름] | AI / Data | RAG 파이프라인, 프롬프트 설계, 레시피 데이터 구축, 평가 |
-| [이름] | Frontend | 웹 UI, 카메라 업로드, 피드백 UI |
-| [이름] | Infra / Automation | Supabase, Render 배포, n8n 워크플로우, 모니터링 |
+| 김민철 | PM / 기획 | 문제 정의, 기획서·명세서, 일정 관리, 사용자 테스트 총괄 |
+| 한수민 | Backend / Agent | FastAPI, Agent 오케스트레이션, 도구 설계 |
+| 석제훈 | AI / Data | RAG 파이프라인, 프롬프트 설계, 레시피 데이터 구축, 평가 |
+| 서연철 | Frontend | 웹 UI, 카메라 업로드, 피드백 UI |
+| 최진우 | Infra / Automation | Supabase, Render 배포, n8n 워크플로우, 모니터링 |
 
 ## 🧰 기술 스택
 | 영역 | 기술 | 선정 이유 |
