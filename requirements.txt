@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+anthropic
+voyageai
+supabase
+python-dotenv
+python-multipart
+pandas
